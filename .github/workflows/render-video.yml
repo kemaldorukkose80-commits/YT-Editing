@@ -1,0 +1,88 @@
+name: Render Video
+
+on:
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "jobs/ altındaki klasör adı (örn: ornek-video)"
+        required: true
+        default: ""
+      test_mode:
+        description: "Test görselleriyle üret (API kotası harcamaz)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: render-${{ github.event.inputs.job }}
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Bağımlılıklar
+        run: pip install -r requirements.txt
+
+      - name: Görsel önbelleği (API kotasını korur)
+        uses: actions/cache@v4
+        with:
+          path: cache
+          key: visual-cache-v1
+          restore-keys: visual-cache-v1
+
+      - name: Render
+        env:
+          BRAVE_API_KEY: ${{ secrets.BRAVE_API_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+        run: |
+          JOB="${{ github.event.inputs.job }}"
+          MODE="${{ github.event.inputs.test_mode == 'true' && 'test' || 'real' }}"
+          if [ "$MODE" = "real" ]; then
+            if [ -z "$BRAVE_API_KEY" ] || [ -z "$PEXELS_API_KEY" ]; then
+              echo "::error::BRAVE_API_KEY ve PEXELS_API_KEY secret'ları eksik. Repo Settings > Secrets > Actions kısmına ekleyin ya da test_mode=true kullanın."
+              exit 1
+            fi
+          fi
+          if [ ! -d "jobs/$JOB" ]; then
+            echo "::error::jobs/$JOB klasörü bulunamadı (bu dalda). Ses + script.txt yüklediğinizden emin olun."
+            exit 1
+          fi
+          python render_cli.py --job-dir "jobs/$JOB" --mode "$MODE" --out "output/$JOB.mp4"
+
+      - name: Rapor
+        if: always()
+        run: |
+          if [ -f "jobs/${{ github.event.inputs.job }}/work/report.md" ]; then
+            cat "jobs/${{ github.event.inputs.job }}/work/report.md"
+          fi
+
+      - name: Artifact (MP4 + rapor)
+        uses: actions/upload-artifact@v4
+        with:
+          name: video-${{ github.event.inputs.job }}
+          path: |
+            output/*.mp4
+            jobs/${{ github.event.inputs.job }}/work/report.md
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Release olarak yayınla (kalıcı link)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="render-${{ github.event.inputs.job }}-$(date +%Y%m%d-%H%M%S)"
+          NOTES="Otomatik üretim: \`${{ github.event.inputs.job }}\`
+          - Mod: ${{ github.event.inputs.test_mode == 'true' && 'test görselleri' || 'gerçek görseller' }}
+          - Rapor: artifact'lar arasında"
+          gh release create "$TAG" output/*.mp4 --title "🎬 ${{ github.event.inputs.job }}" --notes "$NOTES"

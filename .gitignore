@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+# Çalışma zamanı verileri (büyük dosyalar) — git'e girmez
+/jobs/*
+!/jobs/.gitkeep
+/cache/
+/output/
+settings.json
+*.log
