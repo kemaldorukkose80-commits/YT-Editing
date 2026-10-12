@@ -1,0 +1,9 @@
+{
+  "title": "ornek-job",
+  "resolution": "1080p",
+  "video_ratio": 0.25,
+  "transition": 0.35,
+  "overlay_max": 5,
+  "language": "auto",
+  "mode": "real"
+}

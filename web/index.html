@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>YT-Editing — Otomatik Video Editör</title>
+<link rel="stylesheet" href="/web/style.css">
+</head>
+<body>
+<header>
+  <div class="brand">🎬 YT-Editing</div>
+  <nav>
+    <button class="tab active" data-tab="new">➕ Yeni Video</button>
+    <button class="tab" data-tab="jobs">📋 İşler <span id="jobBadge" class="badge" hidden>0</span></button>
+    <button class="tab" data-tab="settings">⚙️ Ayarlar</button>
+    <button class="tab" data-tab="help">📖 Rehber</button>
+  </nav>
+</header>
+
+<main>
+<!-- ==================== YENİ VİDEO ==================== -->
+<section id="tab-new" class="panel active">
+  <div id="statusStrip" class="strip"></div>
+
+  <div class="card">
+    <h2>Üretim yöntemi</h2>
+    <div class="radios">
+      <label class="radio"><input type="radio" name="mode" value="actions" checked>
+        <div><b>☁️ GitHub Actions ile üret</b> <span class="rec">ÖNERİLEN</span>
+        <p>Gerçek Brave/Pexels görselleriyle tam kalite render. iPad'den güvenle kullanılır, sunucu kapalıyken de çalışır.</p></div></label>
+      <label class="radio"><input type="radio" name="mode" value="test">
+        <div><b>⚡ Hızlı önizleme (test görselleri)</b>
+        <p>API kullanmaz. Renkli test kartlarıyla zamanlama, geçiş ve yazı efektlerini dakikalar içinde görürsün.</p></div></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>1) Ses dosyan</h2>
+    <input type="file" id="audioFile" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.opus,.flac">
+    <p class="hint">mp3 / m4a / wav… Uzun videolar için <b>m4a 64–96 kbps mono</b> önerilir (dosya küçük kalır, 1,5 saat ≈ 45 MB).</p>
+  </div>
+
+  <div class="card">
+    <h2>2) Video metnin (senaryo)</h2>
+    <input type="file" id="scriptFile" accept=".txt,text/plain" style="margin-bottom:8px">
+    <textarea id="scriptText" rows="10" placeholder="Metnini buraya yapıştır ya da .txt dosyası seç…&#10;Her dil desteklenir (Türkçe dahil)."></textarea>
+    <p class="hint">Seslendirdiğin metnin aynısı olmalı — sistem cümleleri sese göre hizalar.</p>
+  </div>
+
+  <details class="card">
+    <summary><h2>3) İsteğe bağlı: Elle yazı efektleri (opsiyonel)</h2></summary>
+    <p class="hint">Boş bırakırsan sistem ilk 3-5 önemli sayı/para/isim'i otomatik seçer (giriş/hook kısmına öncelik verir). Elle belirtmek için her satıra: <code>dakika:saniye | YAZI</code></p>
+    <textarea id="manualOverlays" rows="4" placeholder="Örnek:&#10;0:12 | 3.5 Milyar Dolar&#10;2:45 | Atatürk"></textarea>
+  </details>
+
+  <details class="card">
+    <summary><h2>4) İsteğe bağlı: Gelişmiş ayarlar</h2></summary>
+    <div class="grid2">
+      <label>Çözünürlük
+        <select id="optRes"><option value="1080p">1080p (1920×1080)</option><option value="720p">720p (daha hızlı)</option></select></label>
+      <label>Video oranı (geri kalanı fotoğraf)
+        <select id="optRatio"><option value="0.15">%15</option><option value="0.25" selected>%25</option><option value="0.4">%40</option><option value="0">Hiç video istemiyorum</option></select></label>
+      <label>Geçiş süresi
+        <select id="optTrans"><option value="0.25">0,25 sn</option><option value="0.35" selected>0,35 sn</option><option value="0.5">0,5 sn</option></select></label>
+      <label>Maks. yazı efekti
+        <select id="optOv"><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option></select></label>
+      <label>Dil (metin)
+        <select id="optLang"><option value="auto">Otomatik algıla</option><option value="tr">Türkçe</option><option value="en">English</option><option value="es">Español</option><option value="pt">Português</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="it">Italiano</option><option value="ru">Русский</option><option value="ar">العربية</option><option value="hi">हिन्दी</option><option value="id">Indonesia</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="zh">中文</option></select></label>
+    </div>
+  </details>
+
+  <div class="card">
+    <label>Video başlığı <input type="text" id="jobTitle" placeholder="örn: osmanli-imparatorlugu-1-bolum"></label>
+    <button id="submitBtn" class="primary big">🚀 Üretimi Başlat</button>
+    <div id="uploadBar" class="bar" hidden><div class="bar-fill" id="uploadFill"></div><span id="uploadText"></span></div>
+    <p id="submitMsg" class="hint"></p>
+  </div>
+</section>
+
+<!-- ==================== İŞLER ==================== -->
+<section id="tab-jobs" class="panel">
+  <div id="jobsList" class="jobs"><p class="hint">Henüz iş yok.</p></div>
+</section>
+
+<!-- ==================== AYARLAR ==================== -->
+<section id="tab-settings" class="panel">
+  <div class="card">
+    <h2>API Anahtarları</h2>
+    <label>Brave Search API Key (fotoğraflar) <input type="password" id="setBrave" placeholder="BSA..."></label>
+    <label>Pexels API Key (videolar) <input type="password" id="setPexels" placeholder="56349..."></label>
+    <p class="hint">Anahtarlar yalnızca bu sunucuda <code>settings.json</code> içinde saklanır, Git'e girmez. Ücretsiz Brave planı saniyede 1 istek kabul eder — sistem bunu otomatik yavaşlatır ve sorguları önbellekler.</p>
+  </div>
+  <div class="card">
+    <h2>GitHub</h2>
+    <label>Render dalı (branch) <input type="text" id="setBranch" placeholder="main"></label>
+    <p class="hint">İşler bu dala yüklenir ve <code>Render Video</code> workflow'u tetiklenir. Anahtarları GitHub → Settings → Secrets → Actions kısmına <b>BRAVE_API_KEY</b> ve <b>PEXELS_API_KEY</b> olarak da eklemelisin.</p>
+  </div>
+  <div class="card">
+    <h2>Varsayılan ayarlar</h2>
+    <div class="grid2">
+      <label>Çözünürlük <select id="setRes"><option value="1080p">1080p</option><option value="720p">720p</option></select></label>
+      <label>Video oranı <select id="setRatio"><option value="0.15">%15</option><option value="0.25">%25</option><option value="0.4">%40</option><option value="0">0</option></select></label>
+      <label>Geçiş (sn) <select id="setTrans"><option value="0.25">0,25</option><option value="0.35">0,35</option><option value="0.5">0,5</option></select></label>
+      <label>Maks. yazı efekti <select id="setOv"><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label>
+    </div>
+  </div>
+  <div class="card"><button id="saveSettings" class="primary big">💾 Ayarları Kaydet</button><p id="setMsg" class="hint"></p></div>
+</section>
+
+<!-- ==================== REHBER ==================== -->
+<section id="tab-help" class="panel">
+  <div class="card">
+    <h2>iPad ile kullanım (adım adım)</h2>
+    <ol class="guide">
+      <li><b>API anahtarlarını ekle</b> — ⚙️ Ayarlar sekmesine Brave ve Pexels anahtarlarını gir, kaydet. Aynı anahtarları GitHub deposunda <i>Settings → Secrets and variables → Actions → New repository secret</i> yolundan <code>BRAVE_API_KEY</code> ve <code>PEXELS_API_KEY</code> olarak da ekle.</li>
+      <li><b>Yeni Video</b> sekmesinde yöntem seç — normal işler için <b>☁️ GitHub Actions ile üret</b>.</li>
+      <li><b>Ses dosyanı seç</b>, <b>metnini yapıştır</b>, başlık yaz ve <b>Üretimi Başlat</b>'a bas. Hepsi bu — Actions videoyu üretir.</li>
+      <li><b>İşler</b> sekmesinden ilerlemeyi izle. Bitince GitHub Releases sayfasından MP4'ü iPad'ine indir.</li>
+      <li>Sunucu/uygulama kapalıyken bile: GitHub sitesinden <i>Add file → Upload files</i> ile <code>jobs/videonun-adi/</code> klasörüne ses + <code>script.txt</code> yükle, <i>Actions → Render Video → Run workflow</i> de, iş adını yaz, başlat.</li>
+    </ol>
+    <h2> Nasıl çalışır?</h2>
+    <ul class="guide">
+      <li>Ses–metin hizalaması oransal dağıtım + sessizlik kenetleme ile yapılır (her cümle ~5-6 sn'lik sahnelere düşer).</li>
+      <li>Her sahne için anahtar kelimelerle fotoğraf (Brave) veya stok video (Pexels) çekilir; fotoğraflara Ken Burns, her değişimde kısa fade geçişi uygulanır.</li>
+      <li>Metinde geçen önemli <b>para/sayı/isim</b> bilgileri sade bir yazı efektiyle ekrana gelir (video başına 3-5, giriş bölümüne öncelik).</li>
+      <li>Sorgular diskte önbelleklenir — aynı konu tekrar sorulduğunda API kotası harcanmaz.</li>
+    </ul>
+  </div>
+</section>
+</main>
+
+<div id="toast" class="toast" hidden></div>
+<script src="/web/app.js"></script>
+</body>
+</html>
